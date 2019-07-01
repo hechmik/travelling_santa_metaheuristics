@@ -104,7 +104,7 @@ def particle_swarm_optimization(path_length,
 
     result = [[t, global_min_distance]]
     for t in range(1, number_of_iterations + 1):
-        if t % 10 == 0:
+        if t % 50 == 0:
             print("Iteration: {}, minimum distance so far: {}".format(t, global_min_distance))
         # shuffle_worst_particle(distances, pop)
         inertia_weight, pop, vel = update_inertia_pop_vel(best_particle, best_pop, c1, c2, decrement_factor,
