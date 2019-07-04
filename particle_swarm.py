@@ -214,8 +214,10 @@ def update_cluster_parameters(c1, c2, cities, clusterized_cities, clusters_best_
         current_best_pop[distance_comparison] = current_pop[distance_comparison]
 
         if hybrid_evolutionary_approach:
-            current_pop[int(ro / 2):] = current_pop[0:int(ro / 2)]
-            current_vel[int(ro / 2):] = current_vel[0:int(ro / 2)]
+            best_elements_indexes = np.argsort(distances)[0:int(ro / 2)]
+            worst_elements_indexes = np.argsort(distances)[int(ro / 2):]
+            current_pop[worst_elements_indexes] = current_pop[best_elements_indexes]
+            current_vel[worst_elements_indexes] = current_vel[worst_elements_indexes]
 
         # Update storing structures
         clusters_best_pop[cluster] = current_best_pop
@@ -229,7 +231,6 @@ def update_cluster_parameters(c1, c2, cities, clusterized_cities, clusters_best_
             best_particle_index = np.argsort(current_dist)[0]
             clusters_best_particle[cluster] = current_pop[best_particle_index]
             clusters_best_path[cluster] = current_paths[best_particle_index]
-
 
 
 def generate_overall_params(cities, clusters_best_path, clusters_pop, not_primes_bool, ro):
@@ -259,7 +260,7 @@ def generate_not_primes_numbers_array(cities):
 
 def update_overall_parameters(best_final_complete_distances, best_overall_distance, best_overall_iteration,
                               best_overall_particle, best_overall_pop, c1, c2, cities, clusters_best_path, final_path,
-                              inertia_weight, not_primes_bool, overall_pop, overall_vel, r1, r2, ro, t):
+                              inertia_weight, not_primes_bool, overall_pop, overall_vel, r1, r2, ro, t, hybrid_approach):
     mutate_pop_elements(overall_pop, ro)
     overall_vel = overall_vel * inertia_weight
     overall_vel = overall_vel + c1 * r1 * (best_overall_pop - overall_pop)
@@ -281,74 +282,15 @@ def update_overall_parameters(best_final_complete_distances, best_overall_distan
         best_overall_particle = overall_pop[current_iteration_best_index]
         final_path = final_complete_paths[current_iteration_best_index]
         best_overall_distance = current_min_distance
+    if hybrid_approach:
+        best_elements_indexes = np.argsort(final_complete_distances)[0:int(ro / 2)]
+        worst_elements_indexes = np.argsort(final_complete_distances)[int(ro / 2):]
+        overall_pop[worst_elements_indexes] = overall_pop[best_elements_indexes]
+        overall_vel[worst_elements_indexes] = overall_vel[worst_elements_indexes]
     return best_overall_distance, best_overall_iteration, final_path, overall_vel, overall_pop, best_overall_particle, best_overall_pop
 
 
 def cluster_particle_swarm_optimization(
-        cities,
-        clusterized_cities,
-        ro=30,
-        max_number_of_iterations=3000,
-        decrement_factor=0.975,
-        hybrid_evolutionary_approach=False,
-        c1=2,  # cognitive param
-        c2=2,  # social param
-        inertia_weight=0.99,
-        wait_interval=200):
-    random.seed(10)
-    np.random.seed(10)
-
-    not_primes_bool = generate_not_primes_numbers_array(cities)
-
-    t = 0
-
-    cluster_dict = generate_cluster_dict(clusterized_cities)
-    clusters_pop, clusters_vel, clusters_best_path, clusters_best_particle, clusters_distances = initialize_clusters(
-        cluster_dict, ro, clusterized_cities, cities, not_primes_bool)
-    clusters_best_pop = clusters_pop
-    r1 = np.random.uniform(low=0, high=1)
-    r2 = np.random.uniform(low=0, high=1)
-
-    final_complete_distances, final_complete_paths, number_of_clusters, overall_pop, overall_vel = generate_overall_params(
-        cities, clusters_best_path, clusters_pop, not_primes_bool, ro)
-
-    best_final_complete_distances = final_complete_distances
-    best_overall_pop = overall_pop
-    best_overall_particle = overall_pop[np.argsort(final_complete_distances)[0]]
-    final_path = final_complete_paths[np.argsort(final_complete_distances)[0]]
-    best_overall_iteration = t
-    best_overall_distance = np.sort(final_complete_distances)[0]
-
-    while True:
-        t = t + 1
-        if t > max_number_of_iterations:
-            print("Reached max number of iterations")
-            break
-        if t % 50 == 0:
-            print("Iteration: {}, min_distance: {}".format(t, best_overall_distance))
-        inertia_weight = inertia_weight * decrement_factor
-        if inertia_weight < 0.4:
-            inertia_weight = 0.4
-        update_cluster_parameters(c1, c2, cities, clusterized_cities, clusters_best_particle, clusters_best_path,
-                                  clusters_best_pop, clusters_distances, clusters_pop, clusters_vel, inertia_weight,
-                                  not_primes_bool, number_of_clusters, r1, r2, ro, hybrid_evolutionary_approach)
-        # Update overall particles
-        best_overall_distance, best_overall_iteration, final_path, overall_vel, overall_pop, best_overall_particle, best_overall_pop = update_overall_parameters(
-            best_final_complete_distances, best_overall_distance, best_overall_iteration, best_overall_particle,
-            best_overall_pop, c1, c2, cities, clusters_best_path, final_path, inertia_weight, not_primes_bool,
-            overall_pop, overall_vel, r1, r2, ro, t)
-        # Hybrid approach: update velocities and pop params of the worst elements
-        if hybrid_evolutionary_approach:
-            overall_pop[int(ro / 2):] = overall_pop[0:int(ro / 2)]
-            overall_vel[int(ro / 2):] = overall_vel[0:int(ro / 2)]
-
-        if t > best_overall_iteration + wait_interval:
-            print("The algorithm is no longer improving")
-            break
-    return best_overall_iteration, best_overall_distance, final_path
-
-
-def cluster_particle_swarm_optimization_bottom_up(
         cities,
         clusterized_cities,
         ro=30,
@@ -359,7 +301,7 @@ def cluster_particle_swarm_optimization_bottom_up(
         c1=2,  # cognitive param
         c2=2,  # social param
         inertia_weight=0.99,
-        wait_interval=200):
+        wait_interval=500):
     random.seed(10)
     np.random.seed(10)
 
@@ -413,7 +355,7 @@ def cluster_particle_swarm_optimization_bottom_up(
         best_overall_distance, best_overall_iteration, final_path, overall_vel, overall_pop, best_overall_particle, best_overall_pop = update_overall_parameters(
             best_final_complete_distances, best_overall_distance, best_overall_iteration, best_overall_particle,
             best_overall_pop, c1, c2, cities, clusters_best_path, final_path, inertia_weight, not_primes_bool,
-            overall_pop, overall_vel, r1, r2, ro, t)
+            overall_pop, overall_vel, r1, r2, ro, t, hybrid_evolutionary_approach)
         if t > best_overall_iteration + wait_interval:
             print("The algorithm is no longer improving")
             break
