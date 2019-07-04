@@ -1,8 +1,5 @@
 import math
 import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
-from datetime import datetime
 
 
 def not_prime(n):
@@ -25,33 +22,7 @@ def is_prime(n):
     return all(n % i for i in range(3, int(math.sqrt(n)) + 1, 2))
 
 
-def old_total_length_w_penalties(r, c, black_list, *args):
-    # v8
-    # every 10th city that is not prime is penalized,
-    # if it is inside the black list
-
-    # check if there are 0s at start and end
-    # r must be processed in order to have a 0 at the start
-    if r[0] != 0:
-        r = np.concatenate(([0], r))
-    if r[-1] == 0:
-        r = r[:-1]
-
-    c = c[r, :]
-    cs = np.roll(c, -1, axis=0)
-    cid = cs[:, 0].astype(int)
-    d = np.sqrt((c[:, 1] - cs[:, 1]) ** 2 + (c[:, 2] - cs[:, 2]) ** 2)
-    #idx = np.arange(9, len(c), 10)
-    idx = np.arange(9, len(c), 10)
-    pc = cid[idx]
-    sel = (idx + 1)[black_list[pc]]
-    d[sel - 1] *= 1.1
-
-    return np.sum(d)
-
-
-def total_length_w_penalties(r, c, black_list, *args):
-    # CORRECT version
+def edp(r, c, black_list, *args):
     # every 10th city is penalized if it is inside the black list
 
     # check if there are 0s at start and end
@@ -60,13 +31,14 @@ def total_length_w_penalties(r, c, black_list, *args):
         r = np.concatenate(([0], r))
     if r[-1] == 0:
         r = r[:-1]
+
     c = c[r, :]
     cs = np.roll(c, -1, axis=0)
     cid = c[:, 0].astype(int)
     d = np.sqrt((c[:, 1] - cs[:, 1]) ** 2 + (c[:, 2] - cs[:, 2]) ** 2)
     idx = np.arange(9, len(c), 10)
     pc = cid[idx]
-    sel = (idx)[black_list[pc]]
+    sel = idx[black_list[pc]]
     d[sel] *= 1.1
 
     return np.sum(d)
@@ -134,7 +106,7 @@ def pop_stats(scores):
     return med, mean, best
 
 
-def roulette_selection(pop, scores, size):
+def roulette_selection_old(pop, scores, size):
     if size % 2 != 0:
         size += 1
     p = scores/np.sum(scores)
@@ -142,7 +114,7 @@ def roulette_selection(pop, scores, size):
     return np.concatenate((pop[sel][:,0], pop[sel][:,1]), 1)
 
 
-def roulette_selection2(pop, scores, size):
+def roulette_selection(pop, scores, size):
     if size % 2 != 0:
         size += 1
     p = scores/np.sum(scores)
@@ -171,11 +143,11 @@ def pairwise_crossover(p):
     return off
 
 
-def two_point_crossover(pa):
+def two_point_crossover_old(pa):
     return np.apply_along_axis(pairwise_crossover, 1, pa)
 
 
-def two_point_crossover2(p):
+def two_point_crossover(p):
     n = p.shape[2]
     swath = np.random.randint(1, n)
 
@@ -198,7 +170,7 @@ def two_point_crossover2(p):
     return off
 
 
-def mod_two_point_crossover2(p):
+def mod_two_point_crossover(p):
     # http://www.rroij.com/open-access/enhanced-order-crossover-for-permutationproblems.php?aid=50178
     n = p.shape[2]
     swath = np.random.randint(1, n // 7)
@@ -276,8 +248,8 @@ def pop_mutation(pop, mut_fun, mut_perc):
     return pop
 
 
-def GA(array, n_gen, pop_size, parent_size, fit_fun, mut_funs, mut_perc=0.1, sel_fun=roulette_selection2,
-       cross_fun=None, pop_include_zero=True, max_no_change=100, on_subsets=False, verbose=False, **kwargs):
+def GA(array, n_gen, pop_size, parent_size, fit_fun, mut_funs, mut_perc=0.1, sel_fun=roulette_selection,
+       cross_fun=two_point_crossover, pop_include_zero=True, max_no_change=100, on_subsets=False, verbose=False, **kwargs):
     subs = kwargs.get("subs")
     if on_subsets:
         n = len(subs)
@@ -306,40 +278,24 @@ def GA(array, n_gen, pop_size, parent_size, fit_fun, mut_funs, mut_perc=0.1, sel
         # pass n_gen = np.inf to iterate until iter_no_change >= max_no_change
 
         # select best parents
-        if verbose: start = datetime.now()
         parents = sel_fun(pop, scores, parent_size)
-        if verbose:
-            end = datetime.now()
-            sel_sec = (end - start).total_seconds()
 
-        if verbose: start = datetime.now()
-        if not (cross_fun is None):
-            # generate offsprings
-            offs = cross_fun(parents)
-        if verbose:
-            end = datetime.now()
-            gen_sec = (end - start).total_seconds()
+
+        # generate offsprings
+        offs = cross_fun(parents)
 
         # replace worst in pop with offs
-        if not (cross_fun is None):
-            sort = np.argsort(scores)
-            pop[sort[:len(offs)]] = offs
+        sort = np.argsort(scores)
+        pop[sort[:len(offs)]] = offs
 
         # mutate pop
-        if verbose: start = datetime.now()
         for fun in mut_funs:
             pop = pop_mutation(pop, fun, mut_perc)
-        if verbose:
-            end = datetime.now()
-            mut_sec = (end - start).total_seconds()
 
         # evaluate
-        if verbose: start = datetime.now()
         # scores = pop_eval(array, pop, fit_fun)
         scores = pop_eval(array, pop, fit_fun, length_fun=length_fun, black_list=black_list, subs=subs)
-        if verbose:
-            end = datetime.now()
-            ev_sec = (end - start).total_seconds()
+
 
         # update traces
         med, mean, best = pop_stats(scores)  # new med, mean best scores
@@ -354,11 +310,8 @@ def GA(array, n_gen, pop_size, parent_size, fit_fun, mut_funs, mut_perc=0.1, sel
         best_trace = np.concatenate((best_trace, [best]))
 
         if verbose:
-            if i % 100 == 0:
-                text = [i, iter_no_change, sel_sec, gen_sec, mut_sec, ev_sec]
-                text.append(sum(text[2:]))
-                text.append(1 / ov_best)
-                print('Iter {}, ItNoChange {}, Sel {}, Cross {}, Mut {}, Ev {}, Tot {}, Best {}'.format(*text))
+            if i % 1000 == 0:
+                print('Iter {}, ItNoChange {}, Best {}'.format(i, iter_no_change, 1 / ov_best))
 
         i += 1
         iter_no_change += 1

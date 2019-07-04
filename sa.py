@@ -1,11 +1,8 @@
-import math
 import matplotlib.pyplot as plt
-import seaborn as sns
-from datetime import datetime
 import numpy as np
 
-def total_length_w_penalties(r, c, black_list, *args):
-    # CORRECT version
+
+def edp(r, c, black_list, *args):
     # every 10th city is penalized if it is inside the black list
 
     # check if there are 0s at start and end
@@ -14,19 +11,20 @@ def total_length_w_penalties(r, c, black_list, *args):
         r = np.concatenate(([0], r))
     if r[-1] == 0:
         r = r[:-1]
+
     c = c[r, :]
     cs = np.roll(c, -1, axis=0)
     cid = c[:, 0].astype(int)
     d = np.sqrt((c[:, 1] - cs[:, 1]) ** 2 + (c[:, 2] - cs[:, 2]) ** 2)
     idx = np.arange(9, len(c), 10)
     pc = cid[idx]
-    sel = (idx)[black_list[pc]]
+    sel = idx[black_list[pc]]
     d[sel] *= 1.1
 
     return np.sum(d)
 
 
-def total_length_w_penalties_unordered(r, c, black_list):
+def edp_unordered_loop(r, c, black_list):
     n_id = np.arange(len(c))[:, np.newaxis]  # new_index
     c = np.concatenate((n_id, c), 1)
     c = c[r, :]
@@ -36,13 +34,13 @@ def total_length_w_penalties_unordered(r, c, black_list):
     d = np.sqrt((c[:, 2] - cs[:, 2]) ** 2 + (c[:, 3] - cs[:, 3]) ** 2)
     idx = np.arange(8, len(c), 10)
     pc = cid[idx]
-    sel = (idx)[black_list[pc]]
+    sel = idx[black_list[pc]]
     d[sel] *= 1.1
 
     return np.sum(d)
 
 
-def total_length_w_penalties_unordered_straigth(r, c, black_list):
+def edp_unordered_straight(r, c, black_list):
     n_id = np.arange(len(c))[:, np.newaxis]  # new_index
     c = np.concatenate((n_id, c), 1)
     c = c[r, :]
@@ -52,7 +50,7 @@ def total_length_w_penalties_unordered_straigth(r, c, black_list):
     d = np.sqrt((c[:, 2] - cs[:, 2]) ** 2 + (c[:, 3] - cs[:, 3]) ** 2)
     idx = np.arange(8, len(c), 10)
     pc = cid[idx]
-    sel = (idx)[black_list[pc]]
+    sel = idx[black_list[pc]]
     d[sel] *= 1.1
 
     return np.sum(d)
@@ -82,11 +80,11 @@ def reverse_mutation(perm, *args):
     return(perm)
 
 
-def shift_primes_mutation(sub, perm, black_list, scale, n):
+def swap_primes_mutation(sub, perm, black_list, scale, n):
     l = len(perm)
     cids = sub[:, 0].astype(int)
     bool_mask = black_list[cids[perm]]
-    tenths = np.arange(8, l, 10)  # 8, 9, 10??
+    tenths = np.arange(8, l, 10)
     p1 = bool_mask.astype(int)
     p1[tenths] *= scale
     p1[p1 == 0] = 1
@@ -135,15 +133,15 @@ def reverse_primes_mutation(sub, perm, black_list, scale, n):
     return newperm
 
 
-def SA(array, fit_fun, maxIter, mut_fun, black_list, scale, n_to_mute,
-       maxIterNoChange=200, tmin=0.01, alpha=0.999, perm_init=None, t_init=1000, verbose=False):
+def SA(array, fit_fun,  mut_fun, black_list, scale, n_to_mute,
+       maxIter = np.inf, maxIterNoChange=200, tmin=0.01, alpha=0.999,
+       perm_init=None, t_init=1000, verbose=False):
+
     # initialize solution
     if perm_init is None:
         perm = np.random.permutation(range(1, len(array)))
     else:
         perm = perm_init.copy()
-
-    n = len(perm)
 
     # init temperature
     tem = t_init
@@ -161,27 +159,19 @@ def SA(array, fit_fun, maxIter, mut_fun, black_list, scale, n_to_mute,
 
         # mutate
         newperm = mut_fun(array, perm, black_list, scale, n_to_mute)
-
         dist_new = fit_fun(newperm, array, black_list)
-        # print(newperm)
-        # print(dist_new)
 
         if dist_new <= best_dist:
-            # print(dist_new)
-            # print('New is best')
             perm = newperm
             dist = dist_new
             best_dist = dist
             best_perm = perm.copy()
             iterNoChange = 0
-        elif (np.exp((dist - dist_new) / tem) > np.random.uniform()):
-
-            # print('New is worse')
+        elif np.exp((dist - dist_new) / tem) > np.random.uniform():
             dist = dist_new
             perm = newperm
             iterNoChange = 0
 
-        # print('Current dist: ', dist, 'Best dist: ', best_dist)
         best_trace = np.concatenate((best_trace, [best_dist]))
         current_trace = np.concatenate((current_trace, [dist]))
         tem *= alpha
