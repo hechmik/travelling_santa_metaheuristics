@@ -39,7 +39,7 @@ def total_length_loop(r, c, *args):
 
     :param r: route
     :param c: cities
-    :return:
+    :return: total path distance
     """
 
     # cities sorted by route
@@ -63,8 +63,7 @@ def total_length_straight(r, c, *args):
 
     :param r: route
     :param c: cities
-    :param args:
-    :return:
+    :return: total path distance
     """
 
     # cities sorted by route
@@ -92,7 +91,7 @@ def edp(r, c, black_list, *args):
     :param r: route
     :param c: cities (the city IDS must be sorted!)
     :param black_list: black list of cities to penalize, if they are on tenth steps
-    :return: the total distance of the route, counting penalities
+    :return: total path distance, counting penalties
     """
 
     # check if there are 0s at start and end
@@ -138,7 +137,7 @@ def edp_unordered_loop(r, c, black_list):
      :param r: route
      :param c: cities (the city IDS must be sorted!)
      :param black_list: black list of cities to penalize, if they are on tenth steps
-     :return: the total distance of the route, counting penalities, starting and ending at the same city
+     :return: total path distance counting penalties, starting and ending at the same city
     """
 
     # new sorting index
@@ -184,7 +183,7 @@ def edp_unordered_straight(r, c, black_list):
     :param r: route
     :param c: cities (the city IDS must be sorted!)
     :param black_list: black list of cities to penalize, if they are on tenth steps
-    :return: the total distance of the route, counting penalities, starting and ending at the same city
+    :return: total path distance, counting penalties, starting and ending at the same city
     """
 
     # new sorting index
