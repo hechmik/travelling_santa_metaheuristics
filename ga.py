@@ -1,89 +1,27 @@
-import math
 import numpy as np
 
 
-def not_prime(n):
-    if n == 2:
-        return False
-    if n % 2 == 0 or n <= 1:
-        return True
-
-    sqr = int(math.sqrt(n)) + 1
-
-    for divisor in range(3, sqr, 2):
-        if n % divisor == 0:
-            return True
-    return False
-
-
-def is_prime(n):
-    if n % 2 == 0 and n > 2:
-        return False
-    return all(n % i for i in range(3, int(math.sqrt(n)) + 1, 2))
-
-
-def edp(r, c, black_list, *args):
-    # every 10th city is penalized if it is inside the black list
-
-    # check if there are 0s at start and end
-    # r must be processed in order to have a 0 at the start
-    if r[0] != 0:
-        r = np.concatenate(([0], r))
-    if r[-1] == 0:
-        r = r[:-1]
-
-    c = c[r, :]
-    cs = np.roll(c, -1, axis=0)
-    cid = c[:, 0].astype(int)
-    d = np.sqrt((c[:, 1] - cs[:, 1]) ** 2 + (c[:, 2] - cs[:, 2]) ** 2)
-    idx = np.arange(9, len(c), 10)
-    pc = cid[idx]
-    sel = idx[black_list[pc]]
-    d[sel] *= 1.1
-
-    return np.sum(d)
-
-
-def total_length_loop(r, c, *args):
-    # Just total length of a tour without penalization,
-    # starting and ending at the same city
-    # here 0 does not need to be at the start,
-    # since we do not need to keep track of non-prime 10th steps
-    c = c[r, :]
-    cs = np.roll(c, -1, axis=0)
-    d = np.sqrt((c[:, 1] - cs[:, 1]) ** 2 + (c[:, 2] - cs[:, 2]) ** 2)
-
-    return np.sum(d)
-
-
-def total_length_straight(r, c, *args):
-    # Just total length of a tour without penalization,
-    # starting and ending at different cities
-    # here 0 does not need to be at the start,
-    # since we do not need to keep track of non-prime 10th steps
-    c = c[r, :]
-    cs = np.roll(c, -1, axis=0)
-
-    # remove last row, corresponding to return to first city
-    cs = cs[:-1]
-    c = c[:-1]
-    d = np.sqrt((c[:, 1] - cs[:, 1]) ** 2 + (c[:, 2] - cs[:, 2]) ** 2)
-
-    return np.sum(d)
-
-
 def route_fitness(r, c, length_fun, **kwargs):
+    """
+    fitness of a route
+    """
     black_list = kwargs.get("black_list")
     return 1 / length_fun(r, c, black_list)
 
 
 def subset_fitness(perm, c, subs, length_fun, **kwargs):
+    """
+    fitness of a route, when dealing with ordering subsets/clusters
+    """
     route = np.concatenate(subs[perm])
     black_list = kwargs.get("black_list")
     return 1 / length_fun(route, c)
 
 
 def pop_gen(n, pop_size, include_zero = True):
+    """
+    Random population generation
+    """
     if include_zero:
         s = 0
     else:
@@ -93,6 +31,9 @@ def pop_gen(n, pop_size, include_zero = True):
 
 
 def pop_eval(array, pop, fit_fun, **kwargs):
+    """
+    Evaluation of population by the fitness function
+    """
     length_fun = kwargs.get("length_fun")
     black_list = kwargs.get("black_list")
     subs = kwargs.get("subs")
@@ -100,21 +41,19 @@ def pop_eval(array, pop, fit_fun, **kwargs):
 
 
 def pop_stats(scores):
+    """
+    Population stats
+    """
     mean = np.mean(scores)
     med = np.median(scores)
     best = np.max(scores)
     return med, mean, best
 
 
-def roulette_selection_old(pop, scores, size):
-    if size % 2 != 0:
-        size += 1
-    p = scores/np.sum(scores)
-    sel = np.random.choice(len(pop), size, replace = True, p = p).reshape((size//2, 2))
-    return np.concatenate((pop[sel][:,0], pop[sel][:,1]), 1)
-
-
 def roulette_selection(pop, scores, size):
+    """
+    Roulette Selection
+    """
     if size % 2 != 0:
         size += 1
     p = scores/np.sum(scores)
@@ -122,39 +61,15 @@ def roulette_selection(pop, scores, size):
     return pop[sel]
 
 
-def pairwise_crossover(p):
-    n = len(p) // 2
-    p0 = p[:n]
-
-    p1 = p[n:]
-    swath = np.random.randint(1, n)
-
-    cut1 = np.random.randint(0, n - swath)
-    cut2 = cut1 + swath
-
-    off = np.repeat([0], n)
-
-    sel = p0[cut1:cut2]
-    off[cut1:cut2] = sel
-    sel = p1[~np.isin(p1, sel)]
-    off[0:cut1] = sel[0:cut1]
-
-    off[cut2:] = sel[cut1:]
-    return off
-
-
-def two_point_crossover_old(pa):
-    return np.apply_along_axis(pairwise_crossover, 1, pa)
-
-
 def two_point_crossover(p):
+    """
+    Two Point Crossover, to be applied directly to a parents array returned by the roulette selection phase
+    """
     n = p.shape[2]
     swath = np.random.randint(1, n)
 
     cut1 = np.random.randint(0, n - swath)
     cut2 = cut1 + swath
-
-    # print(cut1, cut2)
 
     ps0 = p.shape[0]
     off = np.zeros((ps0, n))
@@ -171,7 +86,10 @@ def two_point_crossover(p):
 
 
 def mod_two_point_crossover(p):
-    # http://www.rroij.com/open-access/enhanced-order-crossover-for-permutationproblems.php?aid=50178
+    """
+    Modified Two Point Crossover:
+    http://www.rroij.com/open-access/enhanced-order-crossover-for-permutationproblems.php?aid=50178
+    """
     n = p.shape[2]
     swath = np.random.randint(1, n // 7)
 
@@ -195,6 +113,9 @@ def mod_two_point_crossover(p):
 
 
 def two_point_crossover3(p):
+    """
+    Alternative Version of Two-Point crossover
+    """
     n = p.shape[2]
     swath = np.random.randint(1, n)
     cut1 = np.random.randint(0, n - swath)
@@ -218,21 +139,10 @@ def two_point_crossover3(p):
     return off
 
 
-def swap_mutation(perm):
-    n = len(perm)
-    i = np.random.choice(n, 2, replace = False)
-    perm[i] = perm[i[::-1]]
-    return perm
-
-
-def reverse_mutation(perm):
-    n = len(perm) - 1
-    i = np.random.choice(n, 1)[0]
-    perm[i:i+2] = perm[i:i+2][::-1]
-    return(perm)
-
-
 def shift_mutation(perm):
+    """
+    Performs a shift mutation on a permutation
+    """
     n = len(perm)
     i = np.random.choice(n, 2, replace = False)
     i = np.sort(i)
@@ -242,7 +152,30 @@ def shift_mutation(perm):
     return perm
 
 
+def swap_mutation(perm, *args):
+    """
+    Performs a swap mutation on a permutation
+    """
+    n = len(perm)
+    i = np.random.choice(n, 2, replace = False)
+    perm[i] = perm[i[::-1]]
+    return perm
+
+
+def reverse_mutation(perm, *args):
+    """
+    Performs a reverse mutation on a permutation
+    """
+    n = len(perm) - 1
+    i = np.random.choice(n, 1)[0]
+    perm[i:i+2] = perm[i:i+2][::-1]
+    return perm
+
+
 def pop_mutation(pop, mut_fun, mut_perc):
+    """
+    Apply mutation function to percentage of the population
+    """
     sel = np.random.choice(len(pop), int(len(pop) * mut_perc), replace = False)
     pop[sel] = np.apply_along_axis(mut_fun, 1, pop[sel])
     return pop
@@ -250,6 +183,25 @@ def pop_mutation(pop, mut_fun, mut_perc):
 
 def GA(array, n_gen, pop_size, parent_size, fit_fun, mut_funs, mut_perc=0.1, sel_fun=roulette_selection,
        cross_fun=two_point_crossover, pop_include_zero=True, max_no_change=100, on_subsets=False, verbose=False, **kwargs):
+    """
+    Simple implementation of the GA algorithm
+
+    :param array: e.g. cities array
+    :param n_gen: total number of generations. np.inf by default
+    :param pop_size: size of population
+    :param parent_size: how many parents to select. Offsprings will be half of parent_size
+    :param fit_fun: fitness function
+    :param mut_funs: list of mutation functions to use
+    :param mut_perc: percentage of population to mutate
+    :param sel_fun: selection function
+    :param cross_fun: crossover function
+    :param pop_include_zero: whether the permutations in the population should include the point 0
+    :param max_no_change: maximum number of iterations with no change of best memeber before convergence
+    :param on_subsets: if True, GA is applied to find order of clusters/subsets
+    :param verbose:  if True, prints the progress of the algorithm
+    :param kwargs: Trace of median, mean and best fitness values, overall best value, and best overall permutation
+    :return:
+    """
     subs = kwargs.get("subs")
     if on_subsets:
         n = len(subs)
@@ -280,7 +232,6 @@ def GA(array, n_gen, pop_size, parent_size, fit_fun, mut_funs, mut_perc=0.1, sel
         # select best parents
         parents = sel_fun(pop, scores, parent_size)
 
-
         # generate offsprings
         offs = cross_fun(parents)
 
@@ -295,7 +246,6 @@ def GA(array, n_gen, pop_size, parent_size, fit_fun, mut_funs, mut_perc=0.1, sel
         # evaluate
         # scores = pop_eval(array, pop, fit_fun)
         scores = pop_eval(array, pop, fit_fun, length_fun=length_fun, black_list=black_list, subs=subs)
-
 
         # update traces
         med, mean, best = pop_stats(scores)  # new med, mean best scores
