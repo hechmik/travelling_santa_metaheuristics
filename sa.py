@@ -1,4 +1,3 @@
-import matplotlib.pyplot as plt
 import numpy as np
 
 
@@ -155,7 +154,7 @@ def SA(array, fit_fun,  mut_fun, black_list, scale, n_to_mute,
     :param perm_init: initial permutation
     :param t_init: initial temperature
     :param verbose: if True, the progress of the algorithm is printed
-    :return: the best permutation found, and the traces of the best permutations and the current permutations
+    :return: best permutation found
     """
 
     # initialize solution
