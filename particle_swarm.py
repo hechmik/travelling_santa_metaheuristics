@@ -5,35 +5,78 @@ from datetime import datetime
 
 
 def create_particle(particle_size, x_min=0, x_max=4):
+    """
+    Create a single particle
+    :param particle_size:
+    :param x_min:
+    :param x_max:
+    :return:
+    """
     particle = x_min + (x_max - x_min) * np.random.uniform(low=0, high=1, size=particle_size)
     return particle
 
 
 def create_particle_velocities(particle_size, v_min=-4, v_max=4):
+    """
+    Create the velocities associated with a particle
+    :param particle_size:
+    :param v_min:
+    :param v_max:
+    :return:
+    """
     velocities = v_min + (v_max - v_min) * np.random.uniform(low=0, high=1, size=particle_size)
     return velocities
 
 
 def create_pop_particles(pop_size, particle_length):
+    """
+    Create a population of particles
+    :param pop_size:
+    :param particle_length:
+    :return:
+    """
     pop = [create_particle(particle_length) for i in range(0, pop_size)]
     return np.array(pop)
 
 
 def create_pop_velocities(pop_size, particle_length):
+    """
+    Create the velocities associated with the particles of a population
+    :param pop_size:
+    :param particle_length:
+    :return:
+    """
     pop_vel = [create_particle_velocities(particle_length) for i in range(0, pop_size)]
     return np.array(pop_vel)
 
 
 def generate_santas_path_from_particles_pop(population):
+    """
+    Given a population of particles, create plausible paths using the SVP rule
+    :param population:
+    :return:
+    """
     path_populations = np.argsort(population)
     return path_populations
 
 
 def generate_santas_path_from_particles_pop_complete_dataset(population):
+    """
+
+    :param population:
+    :return:
+    """
     return generate_santas_path_from_particles_pop(population) + 1
 
 
 def evaluate_paths(paths, cities, not_primes_bool):
+    """
+    Compute the euclidean distance with penalties value associated with each given path
+    :param paths:
+    :param cities:
+    :param not_primes_bool:
+    :return:
+    """
     distances = []
     for path in paths:
         distances.append(santas_path.edp(path, cities, not_primes_bool))
@@ -41,12 +84,23 @@ def evaluate_paths(paths, cities, not_primes_bool):
 
 
 def swap_mutation(pop):
+    """
+    Exchange the position of two elements
+    :param pop:
+    :return:
+    """
     pos_to_swap = np.random.choice(range(0, len(pop)), size=2, replace=False)
     pop[pos_to_swap[0]], pop[pos_to_swap[1]] = pop[pos_to_swap[1]], pop[pos_to_swap[0]]
     return pop
 
 
 def mutate_pop_elements(pop, ro):
+    """
+    Apply swap mutation to 10% of population indivuals
+    :param pop:
+    :param ro:
+    :return:
+    """
     elements_to_mutate = np.random.choice(range(0, ro), size=round(ro / 10), replace=False)
     for el in elements_to_mutate:
         pop[el] = swap_mutation(pop[el])
@@ -112,6 +166,7 @@ def particle_swarm_optimization(cities,
             best_path = paths[current_iteration_best_index]
         results_for_each_iteration.append([t, global_min_distance])
 
+        #Interrupt the algorithm if the solution is no longer improving
         if t > best_iteration + wait_interval:
             break
 
@@ -269,12 +324,12 @@ def cluster_particle_swarm_optimization(
     # For reproducibility
     random.seed(10)
     np.random.seed(10)
-
+    #Add list of prime numbers
     not_primes_bool = generate_not_primes_numbers_array(cities)
     t = 0
 
     original_inertia_weight = inertia_weight
-
+    # Create elements necessary for performing PSO on each cluster
     cluster_dict = generate_cluster_dict(clusterized_cities)
     clusters_pop, clusters_vel, clusters_best_path, clusters_best_particle, clusters_distances = initialize_clusters(
         cluster_dict, ro, clusterized_cities, cities)
@@ -288,7 +343,7 @@ def cluster_particle_swarm_optimization(
             print("Start working on cluster {}".format(cluster))
         best_overall_iteration = 0
         inertia_weight = original_inertia_weight
-
+        # Get initial values for cluster element
         current_pop = clusters_pop[cluster]
         current_best_pop = clusters_best_pop[cluster]
         current_vel = clusters_vel[cluster]
@@ -297,37 +352,41 @@ def cluster_particle_swarm_optimization(
         current_best_path = clusters_best_path[cluster]
         for i in range(1, number_of_iterations_clusters + 1):
 
+            # Perform mutation
             mutate_pop_elements(current_pop, ro)
-
+            # Update velocity and pop
             current_vel = current_vel + c1 * r1 * (current_best_pop - current_pop)
             current_vel = current_vel + c2 * r2 * (current_best_particle - current_pop)
             current_pop = current_pop + current_vel
-
+            # Transform the particle in feasible paths
             current_paths = generate_santas_path_from_particles_cluster(current_pop,
                                                                         np.where(clusterized_cities == cluster)[0])
             distances = evaluate_paths_cluster(current_paths, cities)
 
+
+            # Update best particle if needed
             current_best_dist = np.sort(current_dist)[0]
             distance_comparison = distances < current_dist
             current_dist[distance_comparison] = distances[distance_comparison]
             current_best_pop[distance_comparison] = current_pop[distance_comparison]
-
-            if hybrid_evolutionary_approach:
-                best_elements_indexes = np.argsort(distances)[0:int(ro / 2)]
-                worst_elements_indexes = np.argsort(distances)[int(ro / 2):]
-                current_pop[worst_elements_indexes] = current_pop[best_elements_indexes]
-                current_vel[worst_elements_indexes] = current_vel[worst_elements_indexes]
-
-            # Update best particle if needed
             local_best_particle_distance = np.sort(distances)[0]
             if local_best_particle_distance < current_best_dist:
                 best_particle_index = np.argsort(current_dist)[0]
                 current_best_particle = current_pop[best_particle_index]
                 current_best_path = current_paths[best_particle_index]
                 best_overall_iteration = i
+
+            # Stop doing PSO on the given cluster if the solution is no longer improving
             if i > best_overall_iteration + wait_interval:
                 break
+
+            if hybrid_evolutionary_approach:
+                best_elements_indexes = np.argsort(distances)[0:int(ro / 2)]
+                worst_elements_indexes = np.argsort(distances)[int(ro / 2):]
+                current_pop[worst_elements_indexes] = current_pop[best_elements_indexes]
+                current_vel[worst_elements_indexes] = current_vel[worst_elements_indexes]
             inertia_weight = inertia_weight * decrement_factor
+
             if inertia_weight < 0.4:
                 inertia_weight = 0.4
             current_vel = current_vel * inertia_weight
@@ -341,15 +400,18 @@ def cluster_particle_swarm_optimization(
         clusters_best_path[cluster] = current_best_path
     end_pso_each_cluster = datetime.now()
     print("Ended PSO on each cluster")
+
+    #Initialize elements useful for performing PSO on clusters order
     final_complete_distances, final_complete_paths, overall_pop, overall_vel = initialize_overall_params(
         cities, clusters_best_path, clusters_pop, not_primes_bool, ro, number_of_clusters)
+
     best_final_complete_distances = final_complete_distances
     best_overall_pop = overall_pop
     best_overall_particle = overall_pop[np.argsort(final_complete_distances)[0]]
     final_path = final_complete_paths[np.argsort(final_complete_distances)[0]]
     best_overall_iteration = t
     best_overall_distance = np.sort(final_complete_distances)[0]
-    # Now update overall params
+
     inertia_weight = original_inertia_weight
     results_for_each_iteration = [[t, best_overall_distance]]
     for t in range(1, max_number_of_iterations + 1):
