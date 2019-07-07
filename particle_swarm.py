@@ -54,12 +54,12 @@ def mutate_pop_elements(pop, ro):
 
 def particle_swarm_optimization(cities,
                                 ro=30,
-                                max_number_of_iterations=1500,
+                                max_number_of_iterations=1000,
                                 decrement_factor=0.975,
                                 c1=2,  # cognitive param
                                 c2=2,  # social param
                                 inertia_weight=0.99,
-                                wait_interval=200,
+                                wait_interval=100,
                                 hybrid_evolutionary_approach=False):
     # For reproducibility
     random.seed(10)
@@ -258,14 +258,14 @@ def cluster_particle_swarm_optimization(
         cities,
         clusterized_cities,
         ro=30,
-        max_number_of_iterations=1500,
-        number_of_iterations_clusters=1500,
+        max_number_of_iterations=800,
+        number_of_iterations_clusters=800,
         hybrid_evolutionary_approach=False,
         decrement_factor=0.975,
         c1=2,  # cognitive param
         c2=2,  # social param
         inertia_weight=0.99,
-        wait_interval=200):
+        wait_interval=100):
     # For reproducibility
     random.seed(10)
     np.random.seed(10)
