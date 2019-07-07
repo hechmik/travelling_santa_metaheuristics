@@ -1,6 +1,7 @@
 import numpy as np
 import santas_path
 import random
+from datetime import datetime
 #import queue
 
 
@@ -59,7 +60,7 @@ def particle_swarm_optimization(cities,
                                 c1=2,  # cognitive param
                                 c2=2,  # social param
                                 inertia_weight=0.99,
-                                wait_interval=500,
+                                wait_interval=200,
                                 hybrid_evolutionary_approach=False):
     # For reproducibility
     random.seed(10)
@@ -210,7 +211,7 @@ def initialize_clusters(cluster_dict, ro, cluster_indexes, cities):
     return clusters_pop, clusters_vel, clusters_best_path, clusters_best_particle, clusters_distances
 
 
-def initialize_overall_params(cities, clusters_best_path, clusters_pop, not_primes_bool, ro):
+def initialize_overall_params(cities, clusters_best_path, clusters_pop, not_primes_bool, ro, number_of_clusters):
     """
     Initialize parameters needed by PSO for findingn the best order for assembling clusters
     :param cities:
@@ -220,14 +221,14 @@ def initialize_overall_params(cities, clusters_best_path, clusters_pop, not_prim
     :param ro:
     :return:
     """
-    number_of_clusters = len(clusters_pop)
+
     overall_pop = create_pop_particles(pop_size=ro, particle_length=number_of_clusters)
     overall_vel = create_pop_velocities(pop_size=ro, particle_length=number_of_clusters)
     overall_paths = generate_santas_path_from_particles_pop(overall_pop)
     final_complete_paths = compute_final_paths(overall_paths, clusters_best_path)
     final_complete_distances = evaluate_paths(paths=final_complete_paths, cities=cities,
                                               not_primes_bool=not_primes_bool)
-    return final_complete_distances, final_complete_paths, number_of_clusters, overall_pop, overall_vel
+    return final_complete_distances, final_complete_paths, overall_pop, overall_vel
 
 
 def generate_cluster_dict(clusterized_cities):
@@ -265,7 +266,7 @@ def cluster_particle_swarm_optimization(
         c1=2,  # cognitive param
         c2=2,  # social param
         inertia_weight=0.99,
-        wait_interval=500):
+        wait_interval=200):
     # For reproducibility
     random.seed(10)
     np.random.seed(10)
@@ -281,15 +282,7 @@ def cluster_particle_swarm_optimization(
     clusters_best_pop = clusters_pop
     r1 = np.random.uniform(low=0, high=1)
     r2 = np.random.uniform(low=0, high=1)
-
-    final_complete_distances, final_complete_paths, number_of_clusters, overall_pop, overall_vel = initialize_overall_params(
-        cities, clusters_best_path, clusters_pop, not_primes_bool, ro)
-    best_final_complete_distances = final_complete_distances
-    best_overall_pop = overall_pop
-    best_overall_particle = overall_pop[np.argsort(final_complete_distances)[0]]
-    final_path = final_complete_paths[np.argsort(final_complete_distances)[0]]
-    best_overall_iteration = t
-    best_overall_distance = np.sort(final_complete_distances)[0]
+    number_of_clusters = len(clusters_pop)
 
     for cluster in range(number_of_clusters):
         if cluster % 100 == 0:
@@ -331,12 +324,9 @@ def cluster_particle_swarm_optimization(
             if local_best_particle_distance < current_best_dist:
                 best_particle_index = np.argsort(current_dist)[0]
                 current_best_particle = current_pop[best_particle_index]
-                #clusters_best_particle[cluster] = current_pop[best_particle_index]
                 current_best_path = current_paths[best_particle_index]
-                #clusters_best_path[cluster] = current_paths[best_particle_index]
                 best_overall_iteration = i
             if i > best_overall_iteration + wait_interval:
-                #print("The algorithm is no longer improving")
                 break
             inertia_weight = inertia_weight * decrement_factor
             if inertia_weight < 0.4:
@@ -350,8 +340,16 @@ def cluster_particle_swarm_optimization(
         clusters_vel[cluster] = current_vel
         clusters_best_particle[cluster] = current_best_particle
         clusters_best_path[cluster] = current_best_path
-
+    end_pso_each_cluster = datetime.now()
     print("Ended PSO on each cluster")
+    final_complete_distances, final_complete_paths, overall_pop, overall_vel = initialize_overall_params(
+        cities, clusters_best_path, clusters_pop, not_primes_bool, ro, number_of_clusters)
+    best_final_complete_distances = final_complete_distances
+    best_overall_pop = overall_pop
+    best_overall_particle = overall_pop[np.argsort(final_complete_distances)[0]]
+    final_path = final_complete_paths[np.argsort(final_complete_distances)[0]]
+    best_overall_iteration = t
+    best_overall_distance = np.sort(final_complete_distances)[0]
     # Now update overall params
     inertia_weight = original_inertia_weight
     results_for_each_iteration = [[t, best_overall_distance]]
@@ -397,4 +395,4 @@ def cluster_particle_swarm_optimization(
             inertia_weight = 0.4
         overall_vel = inertia_weight * overall_vel
 
-    return results_for_each_iteration, final_path, clusters_best_path
+    return results_for_each_iteration, final_path, clusters_best_path, end_pso_each_cluster
