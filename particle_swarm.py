@@ -2,7 +2,6 @@ import numpy as np
 import santas_path
 import random
 from datetime import datetime
-#import queue
 
 
 def create_particle(particle_size, x_min=0, x_max=4):
@@ -55,7 +54,7 @@ def mutate_pop_elements(pop, ro):
 
 def particle_swarm_optimization(cities,
                                 ro=30,
-                                max_number_of_iterations=2000,
+                                max_number_of_iterations=1500,
                                 decrement_factor=0.975,
                                 c1=2,  # cognitive param
                                 c2=2,  # social param
