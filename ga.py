@@ -199,7 +199,7 @@ def GA(array, n_gen, pop_size, parent_size, fit_fun, mut_funs, mut_perc=0.1, sel
     :param max_no_change: maximum number of iterations with no change of best memeber before convergence
     :param on_subsets: if True, GA is applied to find order of clusters/subsets
     :param verbose:  if True, prints the progress of the algorithm
-    :return: Trace of median, mean and best fitness values, overall best value, and best overall permutation
+    :return: best overall permutation
     """
     subs = kwargs.get("subs")
     if on_subsets:
