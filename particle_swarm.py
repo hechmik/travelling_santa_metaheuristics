@@ -1,6 +1,7 @@
 import numpy as np
 import santas_path
 import random
+#import queue
 
 
 def create_particle(particle_size, x_min=0, x_max=4):
@@ -58,7 +59,7 @@ def particle_swarm_optimization(cities,
                                 c1=2,  # cognitive param
                                 c2=2,  # social param
                                 inertia_weight=0.99,
-                                wait_interval=200,
+                                wait_interval=500,
                                 hybrid_evolutionary_approach=False):
     # For reproducibility
     random.seed(10)
@@ -257,8 +258,8 @@ def cluster_particle_swarm_optimization(
         cities,
         clusterized_cities,
         ro=30,
-        max_number_of_iterations=2000,
-        number_of_iterations_clusters=2000,
+        max_number_of_iterations=1500,
+        number_of_iterations_clusters=1500,
         hybrid_evolutionary_approach=False,
         decrement_factor=0.975,
         c1=2,  # cognitive param
@@ -335,7 +336,7 @@ def cluster_particle_swarm_optimization(
                 #clusters_best_path[cluster] = current_paths[best_particle_index]
                 best_overall_iteration = i
             if i > best_overall_iteration + wait_interval:
-                print("The algorithm is no longer improving")
+                #print("The algorithm is no longer improving")
                 break
             inertia_weight = inertia_weight * decrement_factor
             if inertia_weight < 0.4:
