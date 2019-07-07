@@ -39,7 +39,9 @@ def swap_primes_mutation(sub, perm, black_list, scale, n):
     """
     Performs a swap mutation on a permutation.
     Cities on the black list have a higher chance of being swapped with cities not on the blacklist,
-    if the former are on tenth steps
+    if the former are on tenth steps.
+
+    Not used in the final project, it led to no improvement. Maybe a bug?
     """
     l = len(perm)
     cids = sub[:, 0].astype(int)
@@ -167,8 +169,6 @@ def SA(array, fit_fun,  mut_fun, black_list, scale, n_to_mute,
 
     dist = fit_fun(perm, array, black_list)  # objective function
     best_dist = dist  # init best dist
-    best_trace = np.array([dist])  # init best dist trace
-    current_trace = np.array([dist])  # init current dist trace
     best_perm = perm.copy()   # init best permutation
 
     citer = 0
@@ -192,8 +192,6 @@ def SA(array, fit_fun,  mut_fun, black_list, scale, n_to_mute,
             iterNoChange = 0
 
         # update traces
-        best_trace = np.concatenate((best_trace, [best_dist]))
-        current_trace = np.concatenate((current_trace, [dist]))
         tem *= alpha
 
         if (citer % 100 == 0) and verbose:
@@ -204,20 +202,6 @@ def SA(array, fit_fun,  mut_fun, black_list, scale, n_to_mute,
         if (iterNoChange >= maxIterNoChange) or (citer >= maxIter):
             break
 
-    return best_perm, best_trace, current_trace
+    return best_perm
 
 
-def plot_SA(b, c, n):
-    # plots progress of SA
-
-    fig, ax = plt.subplots(figsize=(10, 6))
-
-    x = np.arange(0, len(c), n)
-    l2 = ax.plot(x, b[::n])[0]
-    l3 = ax.plot(x, c[::n])[0]
-
-    line_labels = ["Best", "Current"]
-
-    fig.legend([l2, l3], line_labels, bbox_to_anchor=(0.85, 0.25))
-
-    plt.show()

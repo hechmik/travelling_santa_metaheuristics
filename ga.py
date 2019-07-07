@@ -215,13 +215,9 @@ def GA(array, n_gen, pop_size, parent_size, fit_fun, mut_funs, mut_perc=0.1, sel
     black_list = kwargs.get("black_list")
 
     scores = pop_eval(array, pop, fit_fun, length_fun=length_fun, black_list=black_list, subs=subs)
-    med, mean, best = pop_stats(scores)
 
-    ov_best = best  # overall best score init
+    ov_best = np.max(scores)  # overall best score init
     best_pop = pop  # overall best pop init
-    med_trace = np.array([med])  # trace of median scores init
-    mean_trace = np.array([mean])  # trace of mean scores init
-    best_trace = np.array([best])  # trace of best scores init
 
     iter_no_change = 0
     i = 0
@@ -248,16 +244,12 @@ def GA(array, n_gen, pop_size, parent_size, fit_fun, mut_funs, mut_perc=0.1, sel
         scores = pop_eval(array, pop, fit_fun, length_fun=length_fun, black_list=black_list, subs=subs)
 
         # update traces
-        med, mean, best = pop_stats(scores)  # new med, mean best scores
+        best = np.max(scores)  # new best score
 
         if best > ov_best:
             ov_best = best
             best_pop = pop.copy()
             iter_no_change = 0
-
-        med_trace = np.concatenate((med_trace, [med]))
-        mean_trace = np.concatenate((mean_trace, [mean]))
-        best_trace = np.concatenate((best_trace, [best]))
 
         if verbose:
             if i % 1000 == 0:
@@ -270,6 +262,6 @@ def GA(array, n_gen, pop_size, parent_size, fit_fun, mut_funs, mut_perc=0.1, sel
 
     # best_scores = pop_eval(array, best_pop, fit_fun)
     best_scores = pop_eval(array, best_pop, fit_fun, length_fun=length_fun, black_list=black_list, subs=subs)
-    bpe = best_pop[np.argmax(best_scores)]
+    best_perm = best_pop[np.argmax(best_scores)]
 
-    return med_trace, mean_trace, best_trace, ov_best, bpe
+    return best_perm
