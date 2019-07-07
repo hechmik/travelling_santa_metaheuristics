@@ -28,4 +28,4 @@ A more in-depth description of the steps con be found in the report.
 - particle_swarm.py contains the functions needed to run Particle Swarm Optimiazion
 - sa.py contains the functions needed to run Simulated Annealing
 - full_steps_GA.ipynb is the notebook with the full execution of the main steps using GA
-- PSO_with_Clustering.ipynb is the notebook with the full execution of the main steps using PSO
+- Particle_Swarm_Optimization.ipynb is the notebook with the full execution of the main steps using PSO and HPSO
