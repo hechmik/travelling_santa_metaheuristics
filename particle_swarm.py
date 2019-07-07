@@ -89,11 +89,11 @@ def particle_swarm_optimization(cities,
     for t in range(1, max_number_of_iterations + 1):
         if t % 100 == 0:
             print("Iteration: {}, minimum distance so far: {}".format(t, global_min_distance))
-
+        # Update velocity and pop
         vel = vel + c1 * r1 * (best_pop - pop)
         vel = vel + c2 * r2 * (best_particle - pop)
         pop = pop + vel
-
+        #Mutate 10% of pop elements
         mutate_pop_elements(pop, ro)
         # Compute new path and the related distances
         paths = generate_santas_path_from_particles_pop_complete_dataset(pop)
