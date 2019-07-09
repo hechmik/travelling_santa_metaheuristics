@@ -1,4 +1,4 @@
-# Metaheuristics - Travellling Santa
+# Metaheuristics - Travelling Santa
 
 # Problem description
 You are provided a list of cities and their coordinates in cities.csv. You must create the shortest possible path that visits all the cities. Your submission file is simply the ordered list in which you visit each city. Paths have the following constraints:
